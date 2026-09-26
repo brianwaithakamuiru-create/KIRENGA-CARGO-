@@ -5,7 +5,7 @@ service cloud.firestore {
     function profile(){return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;}
     function role(r){return signedIn()&&profile().role==r;}
     function admin(){return role('admin');}
-    function staff(){return signedIn()&&profile().role in ['admin','operations'];}
+    function staff(){return signedIn()&&profile().role in ['admin','operations','finance','documentation','fleet','dispatch','logistics','support','hr'];}
     function self(uid){return signedIn()&&request.auth.uid==uid;}
     match /users/{uid}{
       allow read:if self(uid)||staff();
@@ -25,7 +25,8 @@ service cloud.firestore {
       allow delete:if admin();
     }
     match /tracking/{id}{allow read:if true;allow write:if staff();}
-    match /auditLogs/{id}{allow read:if admin();allow create:if signedIn();allow update,delete:if admin();}\n    match /correctionRequests/{id}{allow read:if staff()||self(resource.data.customerId);allow create:if self(request.resource.data.customerId);allow update,delete:if staff();}
+    match /auditLogs/{id}{allow read:if admin();allow create:if signedIn();allow update,delete:if admin();}
+    match /correctionRequests/{id}{allow read:if staff()||self(resource.data.customerId);allow create:if self(request.resource.data.customerId);allow update,delete:if staff();}
     match /vehicles/{id}{allow read:if staff()||self(resource.data.driverId);allow create,update,delete:if admin();}
     match /drivers/{id}{allow read:if staff()||self(resource.data.uid);allow create,update,delete:if admin();}
     match /routes/{id}{allow read:if signedIn();allow create,update,delete:if admin();}
