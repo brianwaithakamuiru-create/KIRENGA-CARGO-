@@ -6,3 +6,5 @@ export async function createRecord(name:CommandCollection,data:Record<string,unk
 export async function saveRecord(name:CommandCollection,id:string,data:Record<string,unknown>){await setDoc(doc(db,name,id),{...data,updatedAt:serverTimestamp()},{merge:true})}
 export async function removeRecord(name:CommandCollection,id:string){await deleteDoc(doc(db,name,id))}
 export async function saveConfig(name:"websiteSettings"|"brandingSettings",data:Record<string,unknown>){await setDoc(doc(db,name,"global"),{...data,updatedAt:serverTimestamp()},{merge:true})}
+
+export async function listPublishedVehicles(){const q=query(collection(db,"vehicles"),orderBy("updatedAt","desc"));return(await getDocs(q)).docs.map(d=>({id:d.id,...d.data()})).filter((v:any)=>v.published===true);}
