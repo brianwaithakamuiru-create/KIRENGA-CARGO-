@@ -30,3 +30,20 @@ Do not commit `.env.local`, Firebase service-account keys, passwords or private 
 
 ## Core collections
 `users`, `bookings`, `shipments`, `tracking`, `auditLogs`.
+
+## Controlled booking lifecycle
+Bookings begin as **PENDING REVIEW**. Authorized administration can confirm a booking, which creates a shipment with separate booking, tracking and receipt identifiers and a randomly generated customer access code. The access code is stored as a SHA-256 hash and verified by Firebase Functions.
+
+After verification, the customer reviews the official shipment details and can confirm them. Customer confirmation is enforced server-side as **CUSTOMER_CONFIRMED_LOCKED**. Customer correction requests are submitted through a server-side function and do not directly modify the shipment.
+
+### Firebase Functions deployment
+From the repository root, install dependencies in `functions/` and deploy the backend with:
+
+```bash
+cd functions
+npm install
+cd ..
+firebase deploy --only functions,firestore,hosting
+```
+
+The secure tracking workplace uses the callable functions `verifyTrackingAccess`, `confirmTrackingShipment`, and `requestTrackingCorrection`.
