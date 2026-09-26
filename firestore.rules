@@ -16,7 +16,7 @@ service cloud.firestore {
     match /bookings/{id}{
       allow create:if self(request.resource.data.customerId);
       allow read:if staff()||self(resource.data.customerId);
-      allow update:if staff()||(self(resource.data.customerId)&&resource.data.confirmationStatus!="CUSTOMER_CONFIRMED_LOCKED"&&request.resource.data.confirmationStatus==resource.data.confirmationStatus);
+      allow update:if staff()||(self(resource.data.customerId)&&resource.data.confirmationStatus=="AWAITING_REVIEW"&&request.resource.data.confirmationStatus==resource.data.confirmationStatus);
       allow delete:if admin();
     }
     match /shipments/{id}{
