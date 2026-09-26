@@ -27,7 +27,7 @@ service cloud.firestore {
     match /tracking/{id}{allow read:if true;allow write:if staff();}
     match /auditLogs/{id}{allow read:if admin();allow create:if signedIn();allow update,delete:if admin();}
     match /correctionRequests/{id}{allow read:if staff()||self(resource.data.customerId);allow create:if self(request.resource.data.customerId);allow update,delete:if staff();}
-    match /vehicles/{id}{allow read:if staff()||self(resource.data.driverId);allow create,update,delete:if admin();}
+    match /vehicles/{id}{allow read:if admin()||staff()||self(resource.data.driverId);allow create,update,delete:if admin();}
     match /drivers/{id}{allow read:if staff()||self(resource.data.uid);allow create,update,delete:if admin();}
     match /routes/{id}{allow read:if signedIn();allow create,update,delete:if admin();}
     match /compliance/{id}{allow read:if staff()||self(resource.data.ownerUid);allow create,update,delete:if admin();}
@@ -38,3 +38,4 @@ service cloud.firestore {
     match /brandingSettings/{id}{allow read:if true;allow write:if admin();}
   }
 }
+    match /vehicles/{id}/public/{subid}{allow read:if true;allow write:if admin();}
