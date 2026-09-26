@@ -1,46 +1,39 @@
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
-    function signedIn() { return request.auth != null; }
-    function profile() { return get(/databases/$(database)/documents/users/$(request.auth.uid)).data; }
-    function role(r) { return signedIn() && profile().role == r; }
-    function staff() { return signedIn() && profile().role in ['admin','operations']; }
-
-    match /users/{uid} {
-      allow read: if signedIn() && (request.auth.uid == uid || staff());
-      allow create: if signedIn() && request.auth.uid == uid
-        && request.resource.data.role == 'customer'
-        && request.resource.data.active == true;
-      allow update: if role('admin') || (
-        signedIn() && request.auth.uid == uid
-        && request.resource.data.role == resource.data.role
-        && request.resource.data.uid == resource.data.uid
-      );
-      allow delete: if role('admin');
+    function signedIn(){return request.auth!=null;}
+    function profile(){return get(/databases/$(database)/documents/users/$(request.auth.uid)).data;}
+    function role(r){return signedIn()&&profile().role==r;}
+    function admin(){return role('admin');}
+    function staff(){return signedIn()&&profile().role in ['admin','operations'];}
+    function self(uid){return signedIn()&&request.auth.uid==uid;}
+    match /users/{uid}{
+      allow read:if self(uid)||staff();
+      allow create:if self(uid)&&request.resource.data.role=='customer'&&request.resource.data.active==true;
+      allow update:if admin()||(self(uid)&&request.resource.data.role==resource.data.role&&request.resource.data.uid==resource.data.uid);
+      allow delete:if admin();
     }
-
-    match /bookings/{id} {
-      allow create: if signedIn() && request.resource.data.customerId == request.auth.uid;
-      allow read: if staff() || (signedIn() && resource.data.customerId == request.auth.uid);
-      allow update: if staff() || (signedIn() && resource.data.customerId == request.auth.uid);
-      allow delete: if role('admin');
+    match /bookings/{id}{
+      allow create:if self(request.resource.data.customerId);
+      allow read:if staff()||self(resource.data.customerId);
+      allow update:if staff()||self(resource.data.customerId);
+      allow delete:if admin();
     }
-
-    match /shipments/{id} {
-      allow read: if staff() || (signedIn() && resource.data.customerId == request.auth.uid) || (signedIn() && resource.data.assignedDriverId == request.auth.uid);
-      allow create, update: if staff();
-      allow delete: if role('admin');
+    match /shipments/{id}{
+      allow read:if staff()||self(resource.data.customerId)||self(resource.data.assignedDriverId);
+      allow create,update:if staff();
+      allow delete:if admin();
     }
-
-    match /tracking/{trackingNumber} {
-      allow read: if true;
-      allow write: if staff();
-    }
-
-    match /auditLogs/{id} {
-      allow read: if role('admin');
-      allow create: if signedIn();
-      allow update, delete: if role('admin');
-    }
+    match /tracking/{id}{allow read:if true;allow write:if staff();}
+    match /auditLogs/{id}{allow read:if admin();allow create:if signedIn();allow update,delete:if admin();}
+    match /vehicles/{id}{allow read:if staff()||self(resource.data.driverId);allow create,update,delete:if admin();}
+    match /drivers/{id}{allow read:if staff()||self(resource.data.uid);allow create,update,delete:if admin();}
+    match /routes/{id}{allow read:if signedIn();allow create,update,delete:if admin();}
+    match /compliance/{id}{allow read:if staff()||self(resource.data.ownerUid);allow create,update,delete:if admin();}
+    match /finance/{id}{allow read:if admin()||role('finance');allow create,update:if admin()||role('finance');allow delete:if admin();}
+    match /documents/{id}{allow read:if staff()||self(resource.data.ownerUid);allow create,update:if staff();allow delete:if admin();}
+    match /notifications/{id}{allow read:if signedIn();allow create,update:if staff();allow delete:if admin();}
+    match /websiteSettings/{id}{allow read:if true;allow write:if admin();}
+    match /brandingSettings/{id}{allow read:if true;allow write:if admin();}
   }
 }
