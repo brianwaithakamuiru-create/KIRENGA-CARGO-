@@ -6,36 +6,75 @@ service cloud.firestore {
     function role(r){return signedIn()&&profile().role==r;}
     function admin(){return role('admin');}
     function staff(){return signedIn()&&profile().role in ['admin','operations','finance','documentation','fleet','dispatch','logistics','support','hr'];}
+    function employee(){return signedIn()&&profile().role in ['admin','operations','finance','documentation','fleet','dispatch','logistics','support','hr','driver'];}
     function self(uid){return signedIn()&&request.auth.uid==uid;}
+
     match /users/{uid}{
       allow read:if self(uid)||staff();
-      allow create:if self(uid)&&request.resource.data.role=='customer'&&request.resource.data.active==true;
+      allow create:if self(request.resource.data.uid)&&request.resource.data.role=='customer'&&request.resource.data.active==true;
       allow update:if admin()||(self(uid)&&request.resource.data.role==resource.data.role&&request.resource.data.uid==resource.data.uid);
       allow delete:if admin();
     }
+
     match /bookings/{id}{
-      allow create:if self(request.resource.data.customerId);
+      allow create:if signedIn()&&request.resource.data.customerId==request.auth.uid;
       allow read:if staff()||self(resource.data.customerId);
       allow update:if staff()||(self(resource.data.customerId)&&resource.data.confirmationStatus=="AWAITING_REVIEW"&&request.resource.data.confirmationStatus==resource.data.confirmationStatus);
       allow delete:if admin();
     }
+
     match /shipments/{id}{
       allow read:if staff()||self(resource.data.customerId)||self(resource.data.assignedDriverId);
       allow create,update:if staff();
+      allow update:if self(resource.data.assignedDriverId)
+        && request.resource.data.assignedDriverId==resource.data.assignedDriverId
+        && request.resource.data.customerId==resource.data.customerId
+        && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['driverAccepted','driverAcceptedAt','status','arrivedAt','deliveryRecipient','deliveryNotes','proofOfDeliveryUrl','deliveredBy','deliveredAt','updatedAt']);
       allow delete:if admin();
     }
+
     match /tracking/{id}{allow read:if true;allow write:if staff();}
+
     match /auditLogs/{id}{allow read:if admin();allow create:if signedIn();allow update,delete:if admin();}
-    match /correctionRequests/{id}{allow read:if staff()||self(resource.data.customerId);allow create:if self(request.resource.data.customerId);allow update,delete:if staff();}
+    match /correctionRequests/{id}{allow read:if staff()||self(resource.data.customerId);allow create:if signedIn()&&request.resource.data.customerId==request.auth.uid;allow update,delete:if staff();}
+
     match /vehicles/{id}{allow read:if admin()||staff()||self(resource.data.driverId);allow create,update,delete:if admin();}
     match /drivers/{id}{allow read:if staff()||self(resource.data.uid);allow create,update,delete:if admin();}
-    match /routes/{id}{allow read:if signedIn();allow create,update,delete:if admin();}
+    match /routes/{id}{allow read:if employee();allow create,update,delete:if admin();}
     match /compliance/{id}{allow read:if staff()||self(resource.data.ownerUid);allow create,update,delete:if admin();}
     match /finance/{id}{allow read:if admin()||role('finance');allow create,update:if admin()||role('finance');allow delete:if admin();}
-    match /documents/{id}{allow read:if staff()||self(resource.data.ownerUid);allow create,update:if staff();allow delete:if admin();}
-    match /notifications/{id}{allow read:if signedIn();allow create,update:if staff();allow delete:if admin();}
+    match /documents/{id}{allow read:if staff()||self(resource.data.ownerUid);allow create,update:if staff()||self(request.resource.data.ownerUid);allow delete:if admin();}
+    match /notifications/{id}{allow read:if admin()||staff()||self(resource.data.userId)||resource.data.audience==profile().role;allow create,update:if staff();allow delete:if admin();}
+
+    match /tasks/{id}{
+      allow read:if admin()||self(resource.data.assigneeUid);
+      allow create:if admin()||staff();
+      allow update:if admin()||self(resource.data.assigneeUid);
+      allow delete:if admin();
+    }
+
+    match /tripExpenses/{id}{
+      allow read:if admin()||role('finance')||self(resource.data.driverUid);
+      allow create:if role('driver')&&request.resource.data.driverUid==request.auth.uid;
+      allow update:if admin()||role('finance')||self(resource.data.driverUid);
+      allow delete:if admin();
+    }
+
+    match /vehicleIssues/{id}{
+      allow read:if admin()||staff()||self(resource.data.driverUid);
+      allow create:if role('driver')&&request.resource.data.driverUid==request.auth.uid;
+      allow update:if admin()||role('fleet')||role('operations');
+      allow delete:if admin();
+    }
+
+    match /supportTickets/{id}{
+      allow read:if admin()||role('support')||self(resource.data.createdBy);
+      allow create:if employee()&&request.resource.data.createdBy==request.auth.uid;
+      allow update:if admin()||role('support')||self(resource.data.createdBy);
+      allow delete:if admin();
+    }
+
     match /websiteSettings/{id}{allow read:if true;allow write:if admin();}
     match /brandingSettings/{id}{allow read:if true;allow write:if admin();}
   }
 }
-    match /vehicles/{id}/public/{subid}{allow read:if true;allow write:if admin();}
