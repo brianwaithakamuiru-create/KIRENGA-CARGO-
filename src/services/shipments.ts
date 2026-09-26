@@ -1,36 +1,10 @@
-import { addDoc, collection, doc, getDoc, getDocs, limit, orderBy, query, serverTimestamp, updateDoc, where } from "firebase/firestore";
-import { db } from "../lib/firebase";
-import type { Booking, ShipmentStatus } from "../types";
-
-function trackingCode() {
-  return "KCG-" + Math.random().toString(36).slice(2, 8).toUpperCase();
-}
-
-export async function createBooking(data: Omit<Booking,"id"|"status"|"createdAt">) {
-  return addDoc(collection(db,"bookings"), {...data,status:"requested",createdAt:serverTimestamp()});
-}
-
-export async function getCustomerBookings(customerId:string) {
-  const q=query(collection(db,"bookings"),where("customerId","==",customerId),orderBy("createdAt","desc"),limit(50));
-  return (await getDocs(q)).docs.map(d=>({id:d.id,...d.data()}));
-}
-
-export async function getTracking(trackingNumber:string) {
-  const snap=await getDoc(doc(db,"tracking",trackingNumber));
-  return snap.exists()?snap.data():null;
-}
-
-export async function createShipment(data:Record<string,unknown>) {
-  const trackingNumber=trackingCode();
-  const ref=await addDoc(collection(db,"shipments"),{...data,trackingNumber,status:"confirmed" satisfies ShipmentStatus,createdAt:serverTimestamp(),updatedAt:serverTimestamp()});
-  await setDocTracking(trackingNumber,ref.id,"confirmed");
-  return {id:ref.id,trackingNumber};
-}
-
-async function setDocTracking(trackingNumber:string,shipmentId:string,status:ShipmentStatus){
-  await import("firebase/firestore").then(({setDoc})=>setDoc(doc(db,"tracking",trackingNumber),{trackingNumber,shipmentId,status,updatedAt:serverTimestamp()}));
-}
-
-export async function updateShipmentStatus(id:string,status:ShipmentStatus){
-  await updateDoc(doc(db,"shipments",id),{status,updatedAt:serverTimestamp()});
-}
+import{addDoc,collection,doc,getDoc,getDocs,limit,orderBy,query,serverTimestamp,setDoc,updateDoc,where}from"firebase/firestore";import{db}from"../lib/firebase";import type{Booking,ShipmentStatus}from"../types";
+function code(){return Math.random().toString(36).slice(2,8).toUpperCase()}
+function number(prefix:string){const d=new Date();return `KCG-${prefix}-${d.getFullYear()}-${Math.floor(100000+Math.random()*900000)}`}
+export async function createBooking(data:Omit<Booking,"id"|"status"|"createdAt">){return addDoc(collection(db,"bookings"),{...data,status:"requested",confirmationStatus:"AWAITING_REVIEW",createdAt:serverTimestamp(),updatedAt:serverTimestamp()})}
+export async function getCustomerBookings(customerId:string){const q=query(collection(db,"bookings"),where("customerId","==",customerId),orderBy("createdAt","desc"),limit(50));return(await getDocs(q)).docs.map(d=>({id:d.id,...d.data()}))}
+export async function getTracking(trackingNumber:string){const snap=await getDoc(doc(db,"tracking",trackingNumber));return snap.exists()?snap.data():null}
+export async function confirmBooking(booking:any,adminUid:string){const accessCode=`KCG-${code()}`;const trackingNumber=number("T");const bookingNumber=number("B");const receiptNumber=number("R");const ref=await addDoc(collection(db,"shipments"),{bookingId:booking.id,bookingNumber,receiptNumber,trackingNumber,customerId:booking.customerId,customerName:booking.customerName,origin:booking.origin,destination:booking.destination,cargoDescription:booking.cargoDescription,weightKg:booking.weightKg,quantity:booking.quantity||1,transportType:booking.transportType||"Road",status:"confirmed" satisfies ShipmentStatus,confirmationStatus:"AWAITING_CUSTOMER_CONFIRMATION",customerAccessCodeHash:accessCode,createdAt:serverTimestamp(),updatedAt:serverTimestamp(),confirmedBy:adminUid,confirmedAt:serverTimestamp()});await updateDoc(doc(db,"bookings",booking.id),{status:"converted",confirmationStatus:"BOOKING_CONFIRMED",shipmentId:ref.id,bookingNumber,trackingNumber,receiptNumber,updatedAt:serverTimestamp()});await setDoc(doc(db,"tracking",trackingNumber),{trackingNumber,shipmentId:ref.id,status:"confirmed",updatedAt:serverTimestamp()});return{shipmentId:ref.id,bookingNumber,trackingNumber,receiptNumber,accessCode}}
+export async function customerConfirmShipment(shipmentId:string){await updateDoc(doc(db,"shipments",shipmentId),{confirmationStatus:"CUSTOMER_CONFIRMED_LOCKED",customerConfirmedAt:serverTimestamp(),updatedAt:serverTimestamp()})}
+export async function requestCorrection(shipmentId:string,customerId:string,reason:string,proposedChanges:string){return addDoc(collection(db,"correctionRequests"),{shipmentId,customerId,reason,proposedChanges,status:"PENDING",createdAt:serverTimestamp()})}
+export async function updateShipmentStatus(id:string,status:ShipmentStatus){await updateDoc(doc(db,"shipments",id),{status,updatedAt:serverTimestamp()})}
