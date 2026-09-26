@@ -1,5 +1,5 @@
-export type UserRole="admin"|"operations"|"driver"|"customer";
+export type UserRole="admin"|"operations"|"driver"|"finance"|"documentation"|"dispatch"|"logistics"|"support"|"fleet"|"hr"|"customer";
 export type ShipmentStatus="pending"|"confirmed"|"picked_up"|"in_transit"|"out_for_delivery"|"delivered"|"cancelled";
-export interface UserProfile{uid:string;email:string;displayName:string;phone?:string;role:UserRole;active:boolean;createdAt:unknown}
+export interface UserProfile{uid:string;email:string;displayName:string;phone?:string;employeeNumber?:string;department?:string;role:UserRole;active:boolean;mustChangePassword?:boolean;createdAt:unknown}
 export interface Shipment{id:string;trackingNumber:string;customerId:string;customerName:string;origin:string;destination:string;cargoDescription:string;weightKg:number;status:ShipmentStatus;assignedDriverId?:string;confirmationStatus?:string;customerConfirmedAt?:unknown;bookingNumber?:string;receiptNumber?:string;createdAt:unknown;updatedAt:unknown}
 export interface Booking{id:string;customerId:string;customerName:string;origin:string;destination:string;cargoDescription:string;weightKg:number;quantity?:number;transportType?:string;status:"requested"|"reviewed"|"converted"|"declined";confirmationStatus?:string;shipmentId?:string;bookingNumber?:string;trackingNumber?:string;receiptNumber?:string;createdAt:unknown}
