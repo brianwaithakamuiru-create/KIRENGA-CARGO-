@@ -16,7 +16,7 @@ service cloud.firestore {
     match /bookings/{id}{
       allow create:if self(request.resource.data.customerId);
       allow read:if staff()||self(resource.data.customerId);
-      allow update:if staff()||self(resource.data.customerId);
+      allow update:if staff()||(self(resource.data.customerId)&&resource.data.confirmationStatus!="CUSTOMER_CONFIRMED_LOCKED"&&request.resource.data.confirmationStatus==resource.data.confirmationStatus);
       allow delete:if admin();
     }
     match /shipments/{id}{
@@ -25,7 +25,7 @@ service cloud.firestore {
       allow delete:if admin();
     }
     match /tracking/{id}{allow read:if true;allow write:if staff();}
-    match /auditLogs/{id}{allow read:if admin();allow create:if signedIn();allow update,delete:if admin();}
+    match /auditLogs/{id}{allow read:if admin();allow create:if signedIn();allow update,delete:if admin();}\n    match /correctionRequests/{id}{allow read:if staff()||self(resource.data.customerId);allow create:if self(request.resource.data.customerId);allow update,delete:if staff();}
     match /vehicles/{id}{allow read:if staff()||self(resource.data.driverId);allow create,update,delete:if admin();}
     match /drivers/{id}{allow read:if staff()||self(resource.data.uid);allow create,update,delete:if admin();}
     match /routes/{id}{allow read:if signedIn();allow create,update,delete:if admin();}
