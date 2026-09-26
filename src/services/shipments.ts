@@ -1,5 +1,6 @@
 import{addDoc,collection,doc,getDoc,getDocs,limit,orderBy,query,serverTimestamp,setDoc,updateDoc,where}from"firebase/firestore";import{db}from"../lib/firebase";import type{Booking,ShipmentStatus}from"../types";
-function code(){return Math.random().toString(36).slice(2,8).toUpperCase()}\nasync function hashCode(value:string){const bytes=new TextEncoder().encode(value);const hash=await crypto.subtle.digest("SHA-256",bytes);return Array.from(new Uint8Array(hash)).map(x=>x.toString(16).padStart(2,"0")).join("")}
+function code(){return Math.random().toString(36).slice(2,8).toUpperCase()}
+async function hashCode(value:string){const bytes=new TextEncoder().encode(value);const hash=await crypto.subtle.digest("SHA-256",bytes);return Array.from(new Uint8Array(hash)).map(x=>x.toString(16).padStart(2,"0")).join("")}
 function number(prefix:string){const d=new Date();return `KCG-${prefix}-${d.getFullYear()}-${Math.floor(100000+Math.random()*900000)}`}
 export async function createBooking(data:Omit<Booking,"id"|"status"|"createdAt">){return addDoc(collection(db,"bookings"),{...data,status:"requested",confirmationStatus:"AWAITING_REVIEW",createdAt:serverTimestamp(),updatedAt:serverTimestamp()})}
 export async function getCustomerBookings(customerId:string){const q=query(collection(db,"bookings"),where("customerId","==",customerId),orderBy("createdAt","desc"),limit(50));return(await getDocs(q)).docs.map(d=>({id:d.id,...d.data()}))}
