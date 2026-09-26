@@ -8,8 +8,14 @@ service cloud.firestore {
 
     match /users/{uid} {
       allow read: if signedIn() && (request.auth.uid == uid || staff());
-      allow create: if signedIn() && request.auth.uid == uid;
-      allow update: if request.auth.uid == uid || role('admin');
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.role == 'customer'
+        && request.resource.data.active == true;
+      allow update: if role('admin') || (
+        signedIn() && request.auth.uid == uid
+        && request.resource.data.role == resource.data.role
+        && request.resource.data.uid == resource.data.uid
+      );
       allow delete: if role('admin');
     }
 
