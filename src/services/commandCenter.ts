@@ -1,5 +1,5 @@
 import{addDoc,collection,deleteDoc,doc,getDocs,orderBy,query,setDoc,serverTimestamp}from"firebase/firestore";import{db,auth}from"../lib/firebase";import{getFunctions,httpsCallable}from"firebase/functions";
-export const commandCollections=["vehicles","drivers","routes","compliance","finance","documents","notifications"] as const;
+export const commandCollections=["vehicles","drivers","routes","compliance","finance","documents","notifications","tasks","supportTickets"] as const;
 export type CommandCollection=typeof commandCollections[number];
 export async function listRecords(name:CommandCollection){const q=query(collection(db,name),orderBy("updatedAt","desc"));return(await getDocs(q)).docs.map(d=>({id:d.id,...d.data()}))}
 export async function createRecord(name:CommandCollection,data:Record<string,unknown>){return(await addDoc(collection(db,name),{...data,createdAt:serverTimestamp(),updatedAt:serverTimestamp()})).id}
