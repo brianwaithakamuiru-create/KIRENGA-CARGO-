@@ -9,6 +9,4 @@ export async function saveConfig(name:"websiteSettings"|"brandingSettings",data:
 
 export async function listPublishedVehicles(){const q=query(collection(db,"vehicles"),orderBy("updatedAt","desc"));return(await getDocs(q)).docs.map(d=>({id:d.id,...d.data()})).filter((v:any)=>v.published===true);}
 
-export async function listPublishedVehicles(){const q=query(collection(db,"vehicles"),orderBy("updatedAt","desc"));return(await getDocs(q)).docs.map(d=>({id:d.id,...d.data()})).filter((v:any)=>v.published===true);}
-
-export async function getPublicFleet(){const fn=httpsCallable(getFunctions(auth.app),"getPublishedFleet");const r:any=await fn({});return r.data.vehicles||[];}
+export async function getPublicFleet(){const fn=httpsCallable(getFunctions(auth.app),"getPublishedFleet");const r:any=await fn({});return r.data.vehicles||[];}(){const fn=httpsCallable(getFunctions(auth.app),"getPublishedFleet");const r:any=await fn({});return r.data.vehicles||[];}
